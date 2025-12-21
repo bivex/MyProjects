@@ -1,0 +1,1234 @@
+filters:
+  and:
+    - file.hasTag("task")
+formulas:
+  priorityWeight: if(priority=="high",3,if(priority=="normal",2,if(priority=="low",1,if(priority=="none",0,999))))
+  daysUntilDue: if(due, ((number(date(due)) - number(today())) / 86400000).floor(), null)
+  daysUntilScheduled: if(scheduled, ((number(date(scheduled)) - number(today())) / 86400000).floor(), null)
+  daysSinceCreated: ((number(now()) - number(file.ctime)) / 86400000).floor()
+  daysSinceModified: ((number(now()) - number(file.mtime)) / 86400000).floor()
+  isOverdue: due && date(due) < today() && status != "done"
+  isDueToday: due && date(due).date() == today()
+  isDueThisWeek: due && date(due) >= today() && date(due) <= today() + "7d"
+  isScheduledToday: scheduled && date(scheduled).date() == today()
+  isRecurring: recurrence && !recurrence.isEmpty()
+  hasTimeEstimate: timeEstimate && timeEstimate > 0
+  timeRemaining: if(timeEstimate && timeEstimate > 0, timeEstimate - if(timeEntries, list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0), 0), null)
+  efficiencyRatio: if(timeEstimate && timeEstimate > 0 && timeEntries, (list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0) / timeEstimate * 100).round(), null)
+  timeTrackedThisWeek: if(timeEntries, list(timeEntries).filter(value.endTime && date(value.startTime) >= today() - "7d").map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0).round(), 0)
+  timeTrackedToday: if(timeEntries, list(timeEntries).filter(value.endTime && date(value.startTime).date() == today()).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0).round(), 0)
+  dueMonth: if(due, date(due).format("YYYY-MM"), "No due date")
+  dueWeek: if(due, date(due).format("YYYY-[W]WW"), "No due date")
+  scheduledMonth: if(scheduled, date(scheduled).format("YYYY-MM"), "Not scheduled")
+  scheduledWeek: if(scheduled, date(scheduled).format("YYYY-[W]WW"), "Not scheduled")
+  dueDateCategory: if(!due, "No due date", if(date(due) < today(), "Overdue", if(date(due).date() == today(), "Today", if(date(due).date() == today() + "1d", "Tomorrow", if(date(due) <= today() + "7d", "This week", "Later")))))
+  timeEstimateCategory: if(!timeEstimate || timeEstimate == 0, "No estimate", if(timeEstimate < 30, "Quick (<30m)", if(timeEstimate <= 120, "Medium (30m-2h)", "Long (>2h)")))
+  ageCategory: if(((number(now()) - number(file.ctime)) / 86400000) < 1, "Today", if(((number(now()) - number(file.ctime)) / 86400000) < 7, "This week", if(((number(now()) - number(file.ctime)) / 86400000) < 30, "This month", "Older")))
+  createdMonth: file.ctime.format("YYYY-MM")
+  modifiedMonth: file.mtime.format("YYYY-MM")
+  priorityCategory: if(priority=="none","None",if(priority=="low","Low",if(priority=="normal","Normal",if(priority=="high","High","No priority"))))
+  projectCount: if(!projects || list(projects).length == 0, "No projects", if(list(projects).length == 1, "Single project", "Multiple projects"))
+  contextCount: if(!contexts || list(contexts).length == 0, "No contexts", if(list(contexts).length == 1, "Single context", "Multiple contexts"))
+  trackingStatus: if(!timeEstimate || timeEstimate == 0, "No estimate", if(!timeEntries || list(timeEntries).length == 0, "Not started", if(formula.efficiencyRatio < 100, "Under estimate", "Over estimate")))
+  nextDate: if(due && scheduled, if(date(due) < date(scheduled), due, scheduled), if(due, due, scheduled))
+  daysUntilNext: if(due && scheduled, min(formula.daysUntilDue, formula.daysUntilScheduled), if(due, formula.daysUntilDue, formula.daysUntilScheduled))
+  hasDate: due || scheduled
+  isToday: (due && date(due).date() == today()) || (scheduled && date(scheduled).date() == today())
+  isThisWeek: (due && date(due) >= today() && date(due) <= today() + "7d") || (scheduled && date(scheduled) >= today() && date(scheduled) <= today() + "7d")
+  nextDateCategory: if(!due && !scheduled, "No date", if((due && date(due) < today()) || (scheduled && date(scheduled) < today()), "Overdue/Past", if((due && date(due).date() == today()) || (scheduled && date(scheduled).date() == today()), "Today", if((due && date(due).date() == today() + "1d") || (scheduled && date(scheduled).date() == today() + "1d"), "Tomorrow", if((due && date(due) <= today() + "7d") || (scheduled && date(scheduled) <= today() + "7d"), "This week", "Later")))))
+  nextDateMonth: if(due && scheduled, if(date(due) < date(scheduled), date(due).format("YYYY-MM"), date(scheduled).format("YYYY-MM")), if(due, date(due).format("YYYY-MM"), if(scheduled, date(scheduled).format("YYYY-MM"), "No date")))
+  nextDateWeek: if(due && scheduled, if(date(due) < date(scheduled), date(due).format("YYYY-[W]WW"), date(scheduled).format("YYYY-[W]WW")), if(due, date(due).format("YYYY-[W]WW"), if(scheduled, date(scheduled).format("YYYY-[W]WW"), "No date")))
+  urgencyScore: if(!due && !scheduled, formula.priorityWeight, formula.priorityWeight + max(0, 10 - formula.daysUntilNext))
+  timeTrackedFormatted: if(timeEntries, if(list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0) >= 60, (list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0) / 60).floor() + "h " + (list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0) % 60).round() + "m", list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0).round() + "m"), "0m")
+  dueDateDisplay: if(!due, "", if(date(due).date() == today(), "Today", if(date(due).date() == today() + "1d", "Tomorrow", if(date(due).date() == today() - "1d", "Yesterday", if(date(due) < today(), formula.daysUntilDue * -1 + "d ago", if(date(due) <= today() + "7d", date(due).format("ddd"), date(due).format("MMM D")))))))
+  statusProgress: if(status=="done",100,if(status=="doing",50,if(status=="to-do",25,75)))
+  workloadScore: if(timeEstimate, timeEstimate * formula.priorityWeight / 10, formula.priorityWeight)
+  isHighPriority: priority == "high" || (due && formula.daysUntilDue <= 1)
+  isBlocked: status == "archived" || (blockedBy && !blockedBy.isEmpty())
+  needsAttention: formula.isOverdue || formula.isBlocked || formula.isHighPriority
+  cardColor: if(formula.needsAttention, "red", if(formula.isHighPriority, "orange", if(status=="done", "green", "blue")))
+  timeStatus: if(!timeEstimate, "no-estimate", if(!timeEntries || list(timeEntries).length == 0, "not-started", if(formula.timeRemaining <= 0, "over-budget", if(formula.timeRemaining <= timeEstimate * 0.2, "near-limit", "on-track"))))
+  assigneeDisplay: if(assignee, assignee, "Unassigned")
+  projectDisplay: if(projects && !list(projects).isEmpty(), list(projects).join(", "), "No project")
+  tagDisplay: if(file.tags && !list(file.tags).isEmpty(), list(file.tags).filter(tag != "task").join(", "), "")
+  cardTitle: if(file.basename.length() > 40, file.basename.substring(0, 37) + "...", file.basename)
+  progressIndicator: if(timeEstimate && timeEntries, min(100, (list(timeEntries).filter(value.endTime).map((number(date(value.endTime)) - number(date(value.startTime))) / 60000).reduce(acc + value, 0) / timeEstimate * 100).round()), 0)
+  priorityRussian: if(priority=="high","🔴 Высокий",if(priority=="normal","🟡 Средний",if(priority=="low","🟢 Низкий","⚪ Без приоритета")))
+  statusRussian: if(status=="to-do","📋 К выполнению",if(status=="doing","⚡ В работе",if(status=="done","✅ Готово",if(status=="archived","📦 Архив","🚫 Неизвестно"))))
+  dueDateRussian: if(!due,"",if(date(due).date()==today(),"📅 Сегодня",if(date(due).date()==today()+"1d","📅 Завтра",if(date(due)<today(),formula.daysUntilDue*-1+" дней просрочено",if(date(due)<=today()+"7d",date(due).format("📅 ddd"),date(due).format("📅 DD.MM"))))))
+  timeEstimateRussian: if(!timeEstimate,"",if(timeEstimate<60,timeEstimate+" мин",timeEstimate/60+" ч"))
+  assigneeRussian: if(assignee,"👤 "+assignee,"👥 Не назначен")
+  projectRussian: if(projects&&!list(projects).isEmpty(),"📁 "+list(projects).join(", "),"📂 Без проекта")
+  urgencyBadge: if(formula.needsAttention,"🚨 Срочно!",if(formula.isHighPriority,"⭐ Важно",""))
+  premiumCardTitle: formula.cardTitle + if(formula.needsAttention," ⚡","")
+  statusProgressBar: if(status=="done","██████████",if(status=="doing","██████░░░░",if(status=="to-do","██░░░░░░░░","████████░░")))
+  colorScheme: if(formula.needsAttention,"danger",if(status=="done","success",if(status=="doing","warning","info")))
+  executiveScore: (formula.urgencyScore * 2 + formula.priorityWeight * 3 + if(timeEstimate, (timeEstimate / 60).round(), 0) * 1.5).round()
+  productivityRating: if(timeEntries && timeEstimate, if(formula.efficiencyRatio <= 80, "⭐⭐⭐⭐⭐ Отлично", if(formula.efficiencyRatio <= 100, "⭐⭐⭐⭐ Хорошо", if(formula.efficiencyRatio <= 120, "⭐⭐⭐ Средне", "⭐⭐ Ниже ожидаемого"))), "")
+  impactLevel: if(formula.executiveScore >= 50, "🔴 Критический", if(formula.executiveScore >= 30, "🟠 Высокий", if(formula.executiveScore >= 15, "🟡 Средний", "🟢 Низкий")))
+  healthIndicator: if(formula.isOverdue || formula.isBlocked, "🔴 Требует внимания", if(status=="doing" && formula.timeStatus=="near-limit", "🟡 Мониторинг", if(status=="done", "🟢 Завершено", "⚪ Норма")))
+  completionTrend: if(status=="done", "📈 Завершено", if(status=="doing" && timeEntries, "⚡ Активно", if(status=="archived", "👀 Архив", "💤 Ожидание")))
+  velocityIndicator: if(status=="done" && formula.daysSinceModified <= 1, "🚀 Быстро", if(status=="done" && formula.daysSinceModified <= 3, "✅ Нормально", if(status=="done", "🐌 Медленно", "")))
+  riskAssessment: if(formula.isOverdue && priority=="high", "🚨 Критический риск", if(formula.isBlocked, "⚠️ Заблокировано", if(formula.isOverdue, "⏰ Просрочено", if(formula.isDueToday && status!="done", "⚡ Требует действий", "✓ Под контролем"))))
+  workloadCategory: if(formula.executiveScore >= 50, "🔥 Максимум", if(formula.executiveScore >= 30, "⚡ Высокая", if(formula.executiveScore >= 15, "📊 Средняя", "🌊 Легкая")))
+  premiumBadge: if(formula.executiveScore >= 50, "💎 VIP", if(formula.isHighPriority, "⭐ Premium", if(timeEstimate > 240, "🏆 Epic", "")))
+  statusEmoji: if(status=="done","✅",if(status=="doing","⚡",if(status=="to-do","📋",if(status=="archived","📦","🚫"))))
+  smartPriority: formula.statusEmoji + " " + if(formula.needsAttention, "🔥 ", "") + formula.cardTitle
+  performanceGrade: if(!timeEstimate || !timeEntries, "—", if(formula.efficiencyRatio <= 80, "A+", if(formula.efficiencyRatio <= 90, "A", if(formula.efficiencyRatio <= 100, "B+", if(formula.efficiencyRatio <= 110, "B", "C")))))
+  componentCategory: if(component, component, "No component")
+  workTypeCategory: if(workType, workType, "No work type")
+  complexityScore: if(complexity, complexity, 1)
+  riskLevelCategory: if(riskLevel, riskLevel, "No risk")
+  totalComplexity: formula.complexityScore + if(formula.isBlocked, 2, 0) + if(priority == "high", 1, 0)
+  riskMultiplier: if(riskLevel == "critical", 3, if(riskLevel == "high", 2, if(riskLevel == "medium", 1.5, 1)))
+  enhancedUrgencyScore: formula.urgencyScore * formula.riskMultiplier
+  componentPriority: |
+    if(component == "frontend", "🎨 Frontend",
+    if(component == "backend", "⚙️ Backend",
+    if(component == "api", "🔌 API",
+    if(component == "database", "🗄️ Database",
+    if(component == "mobile", "📱 Mobile",
+    "🏗️ Other")))))
+  workTypePriority: |
+    if(workType == "bug", "🐛 Bug Fix",
+    if(workType == "feature", "✨ Feature",
+    if(workType == "refactor", "🔄 Refactor",
+    if(workType == "documentation", "📚 Docs",
+    if(workType == "testing", "🧪 Testing",
+    "📋 Other")))))
+views:
+  - type: tasknotesKanban
+    name: Kanban Board
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - status
+      - priority
+      - due
+      - scheduled
+      - projects
+      - contexts
+      - tags
+      - blockedBy
+      - file.name
+      - recurrence
+      - complete_instances
+    options:
+      columnWidth: 280
+      hideEmptyColumns: false
+  - type: tasknotesKanban
+    name: 💎 EXECUTIVE COMMAND CENTER
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - projects ASC
+      - file.name ASC
+    options:
+      columnWidth: 420
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showProgressBar: true
+      showMetrics: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      maxCardsPerColumn: 50
+      animations: smooth
+      hoverEffect: lift
+  - type: tasknotesKanban
+    name: ⚡ PRIORITY MATRIX
+    groupBy:
+      property: priority
+      direction: DESC
+    order:
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - projects ASC
+      - file.name ASC
+    swimLane: status
+    options:
+      columnWidth: 400
+      hideEmptyColumns: true
+      showPriority: false
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showImpactScore: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        high: "#ff0000"
+        normal: "#ffaa00"
+        low: "#00aa00"
+        none: "#cccccc"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      glowEffect: true
+      maxCardsPerColumn: 40
+  - type: tasknotesKanban
+    name: 🏛️ PORTFOLIO ORCHESTRATOR
+    groupBy:
+      property: projects
+      direction: ASC
+    order:
+      - formula.priorityWeight DESC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    swimLane: status
+    options:
+      columnWidth: 390
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showProjectHealth: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: glassmorphism
+      columnColors:
+        default: "#ff0000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      backdrop: blur
+      maxCardsPerColumn: 35
+  - type: tasknotesKanban
+    name: 📍 CONTEXT MATRIX
+    groupBy:
+      property: contexts
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - due ASC
+      - scheduled ASC
+      - projects ASC
+      - file.name ASC
+    swimLane: priority
+    options:
+      columnWidth: 380
+      hideEmptyColumns: true
+      showPriority: false
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showContextFlow: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#8b5cf6"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#8b5cf6"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🏗️ PROJECT ALPHA
+    filters:
+      and:
+        - file.hasTag("task")
+        - projects.contains("Проект A")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showVelocity: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🚀 PROJECT BETA
+    filters:
+      and:
+        - file.hasTag("task")
+        - projects.contains("Проект B")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showMomentum: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🎨 PROJECT GAMMA
+    filters:
+      and:
+        - file.hasTag("task")
+        - projects.contains("Проект C")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showCreativity: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 📊 PROJECT DELTA
+    filters:
+      and:
+        - file.hasTag("task")
+        - projects.contains("Проект D")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showAnalytics: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: ⚡ PROJECT EPSILON
+    filters:
+      and:
+        - file.hasTag("task")
+        - projects.contains("Проект E")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showInnovationMetrics: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🏗️ ARCHITECTURE MATRIX
+    groupBy:
+      property: formula.componentPriority
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - formula.complexityScore DESC
+      - due ASC
+      - file.name ASC
+    swimLane: formula.workTypePriority
+    options:
+      columnWidth: 420
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showComponentHealth: true
+      cardLayout: executive
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        default: "#6366f1"
+        special: "#8b5cf6"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#6366f1"
+      secondaryAccent: "#8b5cf6"
+      animations: elegant
+      hoverEffect: lift
+      microInteractions: true
+      backdrop: blur
+      maxCardsPerColumn: 25
+  - type: tasknotesKanban
+    name: 👤 PERSONAL DASHBOARD
+    filters:
+      and:
+        - assignee == "currentUser"
+        - status != "done"
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - due ASC
+      - scheduled ASC
+      - projects ASC
+      - file.name ASC
+    swimLane: priority
+    options:
+      columnWidth: 440
+      hideEmptyColumns: false
+      showPriority: true
+      showDueDate: true
+      showAssignee: false
+      showTags: true
+      showTimeEstimate: true
+      showPersonalMetrics: true
+      cardLayout: luxury
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: executive
+      columnColors:
+        to-do: "#3b82f6"
+        doing: "#f59e0b"
+        done: "#10b981"
+        archived: "#6b7280"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#3b82f6"
+      secondaryAccent: "#60a5fa"
+      animations: luxurious
+      hoverEffect: elevate
+      microInteractions: true
+      particleEffects: subtle
+      maxCardsPerColumn: 20
+  - type: tasknotesKanban
+    name: 🚨 RISK ASSESSMENT
+    groupBy:
+      property: formula.riskLevelCategory
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - formula.complexityScore DESC
+      - due ASC
+      - file.name ASC
+    swimLane: status
+    options:
+      columnWidth: 450
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showRiskIndicators: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: premium
+      columnColors:
+        critical: "#dc2626"
+        high: "#ea580c"
+        medium: "#d97706"
+        low: "#65a30d"
+        default: "#6b7280"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#dc2626"
+      secondaryAccent: "#ef4444"
+      animations: urgent
+      pulseEffect: critical
+      glowEffect: danger
+      microInteractions: true
+      maxCardsPerColumn: 20
+  - type: tasknotesKanban
+    name: 🎯 COMPLEXITY MATRIX
+    groupBy:
+      property: formula.complexityScore
+      direction: DESC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    swimLane: status
+    options:
+      columnWidth: 400
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showComplexityMetrics: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        "1": "#65a30d"
+        "2": "#d97706"
+        "3": "#ea580c"
+        "4": "#dc2626"
+        "5": "#7f1d1d"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#ea580c"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🔧 WORK TYPE OVERVIEW
+    groupBy:
+      property: formula.workTypePriority
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - due ASC
+      - scheduled ASC
+      - file.name ASC
+    swimLane: priority
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: false
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showWorkTypeStats: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#6366f1"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#6366f1"
+      maxCardsPerColumn: 35
+  - type: tasknotesKanban
+    name: 👑 EXECUTIVE DASHBOARD
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.priorityWeight DESC
+      - due ASC
+      - projects ASC
+      - file.name ASC
+    options:
+      columnWidth: 450
+      hideEmptyColumns: false
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showKPIs: true
+      showInsights: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: executive
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      secondaryAccent: "#c0c0c0"
+      animations: luxurious
+      hoverEffect: elevate
+      microInteractions: true
+      maxCardsPerColumn: 25
+  - type: tasknotesKanban
+    name: 🚨 URGENT ATTENTION
+    filters:
+      or:
+        - formula.isDueToday
+        - formula.isOverdue
+        - formula.urgencyBadge.contains("🚨")
+    groupBy:
+      property: formula.impactLevel
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - formula.daysUntilNext ASC
+      - due ASC
+    options:
+      columnWidth: 420
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        default: "#ff0000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#ef4444"
+      animations: urgent
+      maxCardsPerColumn: 40
+  - type: tasknotesKanban
+    name: ⚡ QUICK WINS
+    filters:
+      and:
+        - timeEstimate < 60
+        - priority == "high" || priority == "normal"
+        - status == "to-do"
+        - ""
+    groupBy:
+      property: formula.priorityRussian
+      direction: DESC
+    order:
+      - timeEstimate ASC
+      - formula.urgencyScore DESC
+    options:
+      columnWidth: 380
+      hideEmptyColumns: true
+      showPriority: false
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: compact
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#00ff00"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#22c55e"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🔥 CRITICAL RISKS
+    filters:
+      or:
+        - formula.riskAssessment.contains("🚨")
+        - formula.riskAssessment.contains("Критический риск")
+        - and:
+            - formula.isOverdue
+            - priority == "high"
+        - formula.healthIndicator.contains("🔴")
+    groupBy:
+      property: formula.riskAssessment
+      direction: ASC
+    order:
+      - formula.executiveScore DESC
+      - formula.daysUntilDue ASC
+    options:
+      columnWidth: 440
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: premium
+      columnColors:
+        default: "#ff0000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#dc2626"
+      animations: urgent
+      maxCardsPerColumn: 25
+  - type: tasknotesKanban
+    name: 💎 VIP TASKS
+    filters:
+      or:
+        - formula.executiveScore >= 50
+        - formula.premiumBadge.contains("💎")
+        - formula.premiumBadge.contains("⭐")
+        - formula.impactLevel.contains("🔴")
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.executiveScore DESC
+      - formula.urgencyScore DESC
+    options:
+      columnWidth: 460
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showKPIs: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: executive
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#d4af37"
+      secondaryAccent: "#ffd700"
+      animations: luxurious
+      microInteractions: true
+      maxCardsPerColumn: 20
+  - type: tasknotesKanban
+    name: 🎯 UNASSIGNED
+    filters:
+      and:
+        - (!assignee || assignee == "")
+        - status != "done"
+        - formula.executiveScore >= 15
+    groupBy:
+      property: formula.impactLevel
+      direction: ASC
+    order:
+      - formula.executiveScore DESC
+      - priority DESC
+      - due ASC
+    options:
+      columnWidth: 400
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: false
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#ff0000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#8b5cf6"
+      maxCardsPerColumn: 35
+  - type: tasknotesKanban
+    name: 🚫 BLOCKED TASKS
+    filters:
+      and:
+        - formula.isBlocked
+        - status != "done"
+    groupBy:
+      property: formula.healthIndicator
+      direction: ASC
+    order:
+      - formula.urgencyScore DESC
+      - due ASC
+    options:
+      columnWidth: 420
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        default: "#ff0000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#dc2626"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: ⏱️ TIME OVERRUN
+    filters:
+      and:
+        - formula.hasTimeEstimate
+        - or:
+            - formula.timeStatus == "over-budget"
+            - formula.timeStatus == "near-limit"
+        - status != "done"
+    groupBy:
+      property: formula.timeStatus
+      direction: ASC
+    order:
+      - formula.efficiencyRatio DESC
+      - timeEstimate DESC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#ffaa00"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#f59e0b"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🏆 EPIC TASKS
+    filters:
+      and:
+        - timeEstimate >= 240
+        - status != "done"
+    groupBy:
+      property: status
+      direction: ASC
+    order:
+      - formula.executiveScore DESC
+      - priority DESC
+      - due ASC
+    options:
+      columnWidth: 450
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: premium
+      columnColors:
+        to-do: "#ff0000"
+        doing: "#ffff00"
+        done: "#00ff00"
+        archived: "#000000"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#a855f7"
+      animations: elegant
+      maxCardsPerColumn: 20
+  - type: tasknotesKanban
+    name: 🚀 RECENTLY COMPLETED
+    filters:
+      and:
+        - status == "done"
+        - formula.daysSinceModified <= 7
+    groupBy:
+      property: formula.velocityIndicator
+      direction: ASC
+    order:
+      - formula.daysSinceModified ASC
+      - formula.executiveScore DESC
+    options:
+      columnWidth: 400
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#00ff00"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#10b981"
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 📅 THIS WEEK
+    filters:
+      and:
+        - formula.isThisWeek
+        - status != "done"
+    groupBy:
+      property: formula.nextDateCategory
+      direction: ASC
+    order:
+      - formula.daysUntilNext ASC
+      - formula.urgencyScore DESC
+    options:
+      columnWidth: 410
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#0000ff"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#0ea5e9"
+      maxCardsPerColumn: 35
+  - type: tasknotesKanban
+    name: 📈 EFFICIENCY DASHBOARD
+    groupBy:
+      property: formula.performanceGrade
+      direction: DESC
+    order:
+      - formula.efficiencyRatio DESC
+      - formula.executiveScore DESC
+      - due ASC
+      - file.name ASC
+    swimLane: formula.workloadCategory
+    options:
+      columnWidth: 430
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showEfficiencyMetrics: true
+      showPerformanceCharts: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: premium
+      columnColors:
+        A+: "#10b981"
+        A: "#059669"
+        B+: "#0d9488"
+        B: "#0f766e"
+        C: "#dc2626"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#059669"
+      secondaryAccent: "#10b981"
+      animations: smooth
+      hoverEffect: elevate
+      microInteractions: true
+      maxCardsPerColumn: 25
+  - type: tasknotesKanban
+    name: 🚀 VELOCITY TRACKER
+    filters:
+      and:
+        - status == "done"
+        - formula.daysSinceModified <= 30
+    groupBy:
+      property: formula.velocityIndicator
+      direction: ASC
+    order:
+      - formula.daysSinceModified ASC
+      - formula.executiveScore DESC
+      - due DESC
+      - file.name ASC
+    swimLane: priority
+    options:
+      columnWidth: 420
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showVelocityMetrics: true
+      cardLayout: luxury
+      cardShadow: elevated
+      cardBorderRadius: 12
+      columnStyle: gradient
+      columnColors:
+        default: "#06b6d4"
+        special: "#0891b2"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#06b6d4"
+      animations: elegant
+      maxCardsPerColumn: 30
+  - type: tasknotesKanban
+    name: 🎯 PRODUCTIVITY HEATMAP
+    groupBy:
+      property: formula.timeEstimateCategory
+      direction: ASC
+    order:
+      - formula.efficiencyRatio DESC
+      - formula.executiveScore DESC
+      - due ASC
+      - file.name ASC
+    swimLane: formula.ageCategory
+    options:
+      columnWidth: 400
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showHeatmap: true
+      showTimeDistribution: true
+      cardLayout: luxury
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: heatmap
+      columnColors:
+        No estimate: "#e5e7eb"
+        Quick (<30m): "#dbeafe"
+        Medium (30m-2h): "#bfdbfe"
+        Long (>2h): "#93c5fd"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#3b82f6"
+      animations: smooth
+      maxCardsPerColumn: 35
+  - type: tasknotesKanban
+    name: 🏆 TEAM PERFORMANCE
+    filters:
+      and:
+        - assignee.isNotEmpty()
+        - status != "done"
+    groupBy:
+      property: formula.assigneeDisplay
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - formula.complexityScore DESC
+      - due ASC
+      - file.name ASC
+    swimLane: status
+    options:
+      columnWidth: 440
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: false
+      showTags: true
+      showTimeEstimate: true
+      showTeamMetrics: true
+      showWorkloadBalance: true
+      cardLayout: executive
+      cardShadow: platinum
+      cardBorderRadius: 16
+      columnStyle: executive
+      columnColors:
+        default: "#8b5cf6"
+        special: "#a855f7"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#8b5cf6"
+      animations: luxurious
+      microInteractions: true
+      maxCardsPerColumn: 20
+  - type: tasknotesKanban
+    name: 📊 PROJECT HEALTH
+    groupBy:
+      property: projects
+      direction: ASC
+    order:
+      - formula.enhancedUrgencyScore DESC
+      - formula.riskMultiplier DESC
+      - due ASC
+      - file.name ASC
+    swimLane: formula.healthIndicator
+    options:
+      columnWidth: 450
+      hideEmptyColumns: true
+      showPriority: true
+      showDueDate: true
+      showAssignee: true
+      showTags: true
+      showTimeEstimate: true
+      showProjectHealth: true
+      showRiskIndicators: true
+      cardLayout: executive
+      cardShadow: deep
+      cardBorderRadius: 14
+      columnStyle: premium
+      columnColors:
+        default: "#f59e0b"
+        special: "#d97706"
+      headerFont: SF Pro Display
+      cardFont: Inter
+      accentColor: "#f59e0b"
+      animations: elegant
+      hoverEffect: lift
+      maxCardsPerColumn: 25
+  - type: table
+    name: 📊 MASTER DATA GRID
+    order:
+      - formula.urgencyScore
+      - formula.priorityWeight
+      - due
+      - scheduled
+      - file.name
+    sort:
+      - property: file.name
+        direction: DESC
+      - property: scheduled
+        direction: DESC
+      - property: due
+        direction: DESC
+      - property: formula.priorityWeight
+        direction: DESC
+      - property: formula.urgencyScore
+        direction: DESC
+    columns:
+      - file.basename
+      - formula.statusRussian
+      - formula.priorityRussian
+      - formula.dueDateRussian
+      - scheduled
+      - formula.assigneeRussian
+      - formula.projectRussian
+      - formula.timeEstimateRussian
+      - formula.timeTrackedFormatted
+      - formula.progressIndicator
+      - formula.urgencyBadge
+      - formula.statusProgressBar
+      - file.tags
+    options:
+      showRowNumbers: true
+      sortable: true
+      filterable: true
+      groupable: true
+      exportable: true
+      rowHeight: large
+      fontSize: 14
+      headerStyle: bold
+      zebraStripes: true
+      hoverHighlight: true
+      compactMode: false
+      showTotals: true
+      stickyHeader: true
+      virtualScroll: true
+      columnResize: true
+      cellFormatting: rich
+      conditionalFormatting: true
+      accentColor: "#d4af37"
+      headerFont: SF Pro Display
+      bodyFont: Inter

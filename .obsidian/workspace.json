@@ -1,0 +1,238 @@
+{
+  "main": {
+    "id": "430501632141d374",
+    "type": "split",
+    "children": [
+      {
+        "id": "694a5ced2c2d82eb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "26fca58feeaecd6a",
+            "type": "leaf",
+            "state": {
+              "type": "bases",
+              "state": {
+                "file": "TaskNotes/Views/kanban-default.base",
+                "viewName": "Kanban Board"
+              },
+              "icon": "lucide-layout-list",
+              "title": "kanban-default"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "633856ccb2803863",
+    "type": "split",
+    "children": [
+      {
+        "id": "b85a07da0ee86241",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "bdefdeccd0dfbb3c",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "c3b38da44f442829",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "3cbbc5ea12a7d97f",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "7bde6b94ab648a35",
+    "type": "split",
+    "children": [
+      {
+        "id": "c9372380d3c09fa7",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "424ccbcb13a7a405",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "39a02c3aee28a293",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "35058a188c22c7cd",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "09d203b2f4b5321d",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "4ca225b5fbbdf55e",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false,
+      "tasknotes:Open mini calendar": false,
+      "tasknotes:Open advanced calendar": false,
+      "tasknotes:Open task list": false,
+      "tasknotes:Open agenda": false,
+      "tasknotes:Open kanban board": false,
+      "tasknotes:Open pomodoro": false,
+      "tasknotes:Open pomodoro stats": false,
+      "tasknotes:Create new task": false
+    }
+  },
+  "active": "26fca58feeaecd6a",
+  "lastOpenFiles": [
+    "TaskNotes/Views/calendar-default.base",
+    "TaskNotes/Views/kanban-default.base",
+    "Проекты/Проект C.md",
+    "Проекты/Проект B.md",
+    "Проекты/Проект A.md",
+    "Проекты/Проект D.md",
+    "Проекты/Проект E.md",
+    "КОЛИЧЕСТВО_СТУДЕНТОВ.md",
+    "TaskNotes/Views/agenda-default.base",
+    "Dataview-Snippets.md",
+    "Kanban руководство.md",
+    "Kanban Premium.md",
+    "Natural-Language-Dates-Settings.md",
+    "Тестирование системы.md",
+    "Отчет по проектам.md",
+    "Интеграция с CRM.md",
+    "2025-12-22.md",
+    "2025-12-21.md",
+    "Task Notes/tasks/Завершить анализ требований.md",
+    "TaskNotes/Views/mini-calendar-default.base",
+    "TaskNotes/Views/tasks-default.base",
+    "TaskNotes/Views/relationships.base",
+    "q/tasknotes/versions.json",
+    "q/tasknotes/version-bump.mjs",
+    "q/tasknotes/tsconfig.json",
+    "q/tasknotes/tests/unit/utils/userField.settings.test.ts",
+    "q/tasknotes/tests/coverage-report.md",
+    "q/tasknotes/test-overdue-setting.md",
+    "q/tasknotes/tasknotes-simple.svg",
+    "q/tasknotes/tasknotes-gradient.svg",
+    "q/tasknotes/styles/UTILITY-USAGE-GUIDE.md",
+    "q/tasknotes/styles/UTILITIES.md",
+    "q/tasknotes/styles/README.md",
+    "q/tasknotes/media/2025-12-07T15-43-26.png",
+    "q/tasknotes/media/2025-07-15_21-14-06.png",
+    "q/tasknotes/media/2025-07-15_21-13-26.png",
+    "q/tasknotes/media/2025-07-15_21-12-23.png",
+    "q/tasknotes/media/2025-07-15_21-11-10.png",
+    "q/tasknotes/media/2025-06-15_23-32-16.png",
+    "q/tasknotes/media/2025-06-15_23-23-09.png",
+    "q/tasknotes/media/1759751819.gif",
+    "q/tasknotes/issue-analysis/issue-871.md",
+    "q/tasknotes/issue-analysis/issue-859.md",
+    "q/tasknotes/issue-analysis/issue-857.md",
+    "q/tasknotes/issue-analysis/issue-854.md"
+  ]
+}
